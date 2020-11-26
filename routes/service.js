@@ -172,13 +172,87 @@ router.route('/insertRating').post((req, res) => {
 
 }); 
 
+router.route('/servicesSearch').post((req, res) => {
+    let {name, sort, establishment} = req.body;
+    let ratingSort;
+    if (sort[0] != '-') {
+        ratingSort = sort;
+        sort = "-averageRating"
+    } 
+    Service.find({
+        "$or":[
+            {
+                "name": {
+                    "$regex": name,
+                    "$options": "i"
+                }
+            }, {
+                "description": {
+                    "$regex": name,
+                    "$options": "i"
+                }
+            }
+        ]
+    })
+        .populate('category')
+        .sort(sort)
+        .sort('-rating.length')
+        .lean()
+        .then(services => {
+            console.log(ratingSort);
+            if (services && services.length > 0) {
+                services = services.filter(service => service.category.establishment === establishment)
+                if (ratingSort) {
+                    services.forEach(el => {
+                        if (el.rating && el.rating.length > 0) {
+                            let averageRatingSort = el.rating.reduce((a, b) => a + (b[ratingSort] || 0), 0) / el.rating.length;
+                            el.averageRatingSort = averageRatingSort;
+                        } else {
+                            el.averageRatingSort = 0;
+                        }
+                    });
+                    services = services.sort((a,b) => b.averageRatingSort - a.averageRatingSort);
+                }
+                res.json(services);
+            } else {
+                res.send({error: "Nenhum serviço encontrado"})
+            }
+        })
+        .catch(err => {
+            return res.status(400).send({
+                message: 'Erro desconhecido!'
+            });
+        })
+
+}); 
+
+router.route('/getAllServices').get((req, res) => {
+    Service.find({
+    })
+        .populate('category')
+        .sort('-averageRating')
+        .sort('-rating.length')
+        .then(services => {
+            if (services && services.length > 0) {
+                res.json(services.filter(service => service.category.establishment === false));
+            } else {
+                res.send({error: "Nenhum serviço encontrado"})
+            }
+        })
+        .catch(err => {
+            return res.status(400).send({
+                message: 'Erro desconhecido!'
+            });
+        })
+
+}); 
 
 router.route('/topServices').get((req, res) => {
     Service.find({
         "verified": true
     })
         .populate('category')
-        .sort('-avgRating')
+        .sort('-averageRating')
         .sort('-rating.length')
         .limit(10)
         .then(services => {
@@ -196,7 +270,7 @@ router.route('/topServices').get((req, res) => {
             });
         })
 
-}); 
+});
 
 
 
