@@ -8,9 +8,9 @@ const DOMAIN = "sandbox62ba1541b1c54fa69aeb0d9353f9cd78.mailgun.org";
 const mg = mailgun({apiKey: process.env.MAILGUN_APIKEY, domain: DOMAIN});
 const _ = require('lodash')
 
-const fs = require('fs');
 const multer  = require('multer')
-
+const multerConfig = require("../config/multer");
+/* 
 const storage = multer.diskStorage({
     destination: function(req, file,cb) {
         cb(null, './uploads/');
@@ -34,11 +34,10 @@ const upload = multer({
         fileSize: 1024 * 1024 * 15
     },
     fileFilter: fileFilter
-})
+}) */
 
 let User = require('../models/User')
 
-router.use(cors())
 
 process.env.SECRET_KEY = 'secret'
 
@@ -76,7 +75,7 @@ router.route('/getById').post((req, res) => {
         })
 });
 
-router.post('/updateInfo', upload.single('avatar'), function (req, res) {
+router.post('/updateInfo', multer(multerConfig).single('avatar'), function (req, res) {
     User.findOne({
         _id: req.body.id
     })
@@ -97,14 +96,14 @@ router.post('/updateInfo', upload.single('avatar'), function (req, res) {
         })
 })
 
-router.post('/register', upload.single('avatar'), function (req, res){
+router.post('/register', multer(multerConfig).single('avatar'), async (req, res) => {
     const today = new Date()
     const userData = {
         first_name: req.body.first_name,
         last_name: req.body.last_name,
         email: req.body.email,
         password: req.body.password,
-        avatar: req.file ? req.file.path : null,
+        avatar: req.file ? req.file.key.includes("uploads/") ? req.file.key : "uploads/" + req.file.key: null,
         created: today
     };
 

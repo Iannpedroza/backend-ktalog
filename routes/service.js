@@ -3,34 +3,8 @@ const cors = require('cors');
 const { populate } = require('../models/Category');
 let Category = require('../models/Category');
 let Service = require('../models/Service')
-const fs = require('fs');
 const multer  = require('multer')
-
-const storage = multer.diskStorage({
-    destination: function(req, file,cb) {
-        cb(null, './uploads/');
-    },
-    filename: function(req, file, cb) {
-        cb(null, Date.now() + file.originalname);
-    }
-});
-
-const fileFilter = (req, file, cb) => {
-    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
-        cb(null, true);
-    } else {
-        cb(null, false);
-    }
-};
-
-const upload = multer({
-    storage: storage, 
-    limits: {
-        fileSize: 1024 * 1024 * 15
-    },
-    fileFilter: fileFilter
-})
-router.use(cors())
+const multerConfig = require("../config/multer");
 
 router.route('/getByUserId').post((req, res) => {
     let userId = req.body.userId;
@@ -51,14 +25,14 @@ router.route('/getByUserId').post((req, res) => {
 
 });
 
-router.post('/register', upload.fields([{name: 'image', maxCount: 1}, {name: 'productsImages[]'}]), function (req, res){
+router.post('/register', multer(multerConfig).fields([{name: 'image', maxCount: 1}, {name: 'productsImages[]'}]), function (req, res){
     let {name, description, phone, category, verified, cpf, averagePrice, user, address, cnpj, products, schedules} = req.body;
     products = products ? JSON.parse(products) : null;
     if (products && products.some(el => el.image != '')) {
         let i = 0;
         products.forEach(el => {
             if(el.image) {
-                el.image = req.files['productsImages[]'] ? req.files['productsImages[]'][i].path : null;
+                el.image = req.files['productsImages[]'] ? req.files['productsImages[]'][i].key.includes("uploads/") ? req.files['productsImages[]'][i].key : "uploads/" + req.files['productsImages[]'][i].key: null;
                 i++;
             }
         });
@@ -71,7 +45,7 @@ router.post('/register', upload.fields([{name: 'image', maxCount: 1}, {name: 'pr
             .then(categ => {
                 category = categ;
                 
-                Service.create({name, description, phone, category, verified, cpf, averagePrice, user, address, cnpj, products, schedules, image: req.files['image'] ? req.files['image'][0].path : null})
+                Service.create({name, description, phone, category, verified, cpf, averagePrice, user, address, cnpj, products, schedules, image: req.files['image'] ? req.files['image'][0].key.includes("uploads/") ? req.files['image'][0].key : "uploads/" + req.files['image'][0].key: null})
                     .then(service => {
                         console.log("Criado")
                         res.json(service);
