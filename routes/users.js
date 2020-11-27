@@ -10,34 +10,10 @@ const _ = require('lodash')
 
 const multer  = require('multer')
 const multerConfig = require("../config/multer");
-/* 
-const storage = multer.diskStorage({
-    destination: function(req, file,cb) {
-        cb(null, './uploads/');
-    },
-    filename: function(req, file, cb) {
-        cb(null, Date.now() + file.originalname);
-    }
-});
 
-const fileFilter = (req, file, cb) => {
-    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
-        cb(null, true);
-    } else {
-        cb(null, false);
-    }
-};
-
-const upload = multer({
-    storage: storage, 
-    limits: {
-        fileSize: 1024 * 1024 * 15
-    },
-    fileFilter: fileFilter
-}) */
-
-let User = require('../models/User')
-
+let User = require('../models/User');
+const { ServiceDiscovery } = require('aws-sdk');
+const Service = require('../models/Service');
 
 process.env.SECRET_KEY = 'secret'
 
@@ -130,6 +106,35 @@ router.post('/register', multer(multerConfig).single('avatar'), async (req, res)
             res.send('error: ' + err)
         })
 
+});
+
+router.route('/delete').post((req, res) => {
+    const {userId} = req.body;
+    
+    User.deleteOne({
+        _id: userId
+    })
+        .then(del => {
+            if (del.deletedCount === 1) {
+                Service.find({
+                    user: userId
+                })
+                    .then(services => {
+                        if (services && services.length > 0){
+                            Service.deleteMany({
+                                user: userId
+                            })
+                                .then(del => {
+                                    res.send({message: "Foram deletados " + del.deletedCount + " serviços."});
+                                })
+                        } else {
+                            res.send({message: "A conta foi deletada"})
+                        }
+                    })
+            } else {
+                res.send({error: "Não foi possível excluir a conta."})
+            }
+        })
 });
 
 router.route('/login').post((req, res) => {

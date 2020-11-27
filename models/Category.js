@@ -7,8 +7,6 @@ const categorySchema = new Schema({
   name: {
     type: String,
     required: true,
-    unique: true,
-    trim: true,
     max: 30
   },
   establishment: {
