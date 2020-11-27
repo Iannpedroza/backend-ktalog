@@ -25,6 +25,24 @@ router.route('/getByUserId').post((req, res) => {
 
 });
 
+router.route('/delete').post((req, res) => {
+    let serviceId = req.body.serviceId;
+    Service.deleteOne({
+        _id: serviceId
+    })
+        .then(del => {
+            if (del.deletedCount == 1) {
+                res.send({message: "Deletado com sucesso"})
+            } else {
+                res.send({error: "Não foi possível deletar."})
+            }
+        })
+        .catch(err => {
+            res.send({error: err});
+        })
+
+});
+
 router.post('/register', multer(multerConfig).fields([{name: 'image', maxCount: 1}, {name: 'productsImages[]'}]), function (req, res){
     let {name, description, phone, category, verified, cpf, averagePrice, user, address, cnpj, products, schedules} = req.body;
     products = products ? JSON.parse(products) : null;
@@ -147,9 +165,10 @@ router.route('/insertRating').post((req, res) => {
 }); 
 
 router.route('/servicesSearch').post((req, res) => {
-    let {name, sort, establishment} = req.body;
+    let {name, sort, establishment, categoryFilter, ratingFilter} = req.body;
     let ratingSort;
-    if (sort[0] != '-') {
+    
+    if (sort[0] != '-' && sort[0] != '+') {
         ratingSort = sort;
         sort = "-averageRating"
     } 
@@ -170,12 +189,27 @@ router.route('/servicesSearch').post((req, res) => {
     })
         .populate('category')
         .sort(sort)
-        .sort('-rating.length')
         .lean()
         .then(services => {
-            console.log(ratingSort);
             if (services && services.length > 0) {
-                services = services.filter(service => service.category.establishment === establishment)
+                switch(ratingFilter) {
+                    case 1:
+                        services = services.filter(service => service.averageRating && service.averageRating >= 1);
+                        break;
+                    case 2:
+                        services = services.filter(service => service.averageRating && service.averageRating >= 2);
+                        break;
+                    case 3:
+                        services = services.filter(service => service.averageRating && service.averageRating >= 3);
+                        break;
+                    case 4:
+                        services = services.filter(service => service.averageRating && service.averageRating >= 4);
+                        break;
+                }
+                services = services.filter(service => service.category.establishment === establishment);
+                if (categoryFilter && categoryFilter.length > 0) {
+                    services = services.filter(service => categoryFilter.find(el => el.id == service.category._id));
+                }
                 if (ratingSort) {
                     services.forEach(el => {
                         if (el.rating && el.rating.length > 0) {
@@ -187,7 +221,12 @@ router.route('/servicesSearch').post((req, res) => {
                     });
                     services = services.sort((a,b) => b.averageRatingSort - a.averageRatingSort);
                 }
-                res.json(services);
+                if (services && services.length > 0) {
+                    res.json(services);
+                } else {
+                    res.send({error: "Nenhum serviço encontrado"})
+                }
+                
             } else {
                 res.send({error: "Nenhum serviço encontrado"})
             }
@@ -200,7 +239,8 @@ router.route('/servicesSearch').post((req, res) => {
 
 }); 
 
-router.route('/getAllServices').get((req, res) => {
+router.route('/getAllServices').post((req, res) => {
+    const {establishment} = req.body;
     Service.find({
     })
         .populate('category')
@@ -208,7 +248,7 @@ router.route('/getAllServices').get((req, res) => {
         .sort('-rating.length')
         .then(services => {
             if (services && services.length > 0) {
-                res.json(services.filter(service => service.category.establishment === false));
+                res.json(services.filter(service => service.category.establishment == establishment));
             } else {
                 res.send({error: "Nenhum serviço encontrado"})
             }
