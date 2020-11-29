@@ -27,6 +27,9 @@ const categoryRouter = require('./routes/category');
 
 const serviceRouter = require('./routes/service');
 
+const ratingKtalogRouter = require('./routes/ratingKtalog');
+
+app.use('/ratingKtalog', ratingKtalogRouter);
 app.use('/users', usersRouter);
 app.use('/category', categoryRouter);
 app.use('/service', serviceRouter);
