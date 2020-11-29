@@ -7,7 +7,6 @@ router.use(cors())
 router.route('/register').post((req, res) => {
     const {name, establishment} = req.body;
 
-    
     if (name) {
         Category.create({name, establishment})
             .then(category => {
