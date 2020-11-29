@@ -27,7 +27,7 @@ router.route('/getById').post((req, res) => {
 
     RatingKtalog.find({user: userId})
         .then(rating => {
-            if (rating) {
+            if (rating && rating.length > 0) {
                 res.send({exist: true})
             } else {
                 res.send({error: "erro ao criar"})
