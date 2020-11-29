@@ -61,7 +61,7 @@ router.post('/updateInfo', multer(multerConfig).single('avatar'), function (req,
                     first_name: req.body.name,
                     last_name: req.body.lastName,
                     email: req.body.email,
-                    avatar: req.file ? req.file.path : null,
+                    avatar: req.file ? req.file.key.includes("uploads/") ? req.file.key : "uploads/" + req.file.key: null,
                 })
                     .then(user => {
                         if (res) {
@@ -95,7 +95,7 @@ router.post('/register', multer(multerConfig).single('avatar'), async (req, res)
                             res.json({ status: user.email + ' Registered!' })
                         })
                         .catch(err => {
-                            res.send('error: ' + err)
+                            res.send({error: err})
                         })
                 })
             } else {
@@ -103,7 +103,7 @@ router.post('/register', multer(multerConfig).single('avatar'), async (req, res)
             }
         })
         .catch(err => {
-            res.send('error: ' + err)
+            res.send({error: err})
         })
 
 });
